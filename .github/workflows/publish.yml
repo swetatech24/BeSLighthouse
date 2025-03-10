@@ -1,10 +1,10 @@
 name: GitHub Pages
-
+ 
 on:
   push:
     tags:
       - '*.*.*'
-
+ 
 jobs:
   deploy:
     runs-on: ubuntu-latest
@@ -14,46 +14,40 @@ jobs:
       group: ${{ github.workflow }}-${{ github.ref }}
     steps:
       - uses: actions/checkout@v3
-
-      - name: Setup Python
-        uses: actions/setup-python@v3
+ 
+      - name: Use Node 18.x
+        uses: actions/setup-node@v1
         with:
-          python-version: '3.8'
-
-      - name: Upgrade pip
+          node-version: 18.18.2
+ 
+      - name: set env
         run: |
-          # install pip=>20.1 to use "pip cache dir"
-          python3 -m pip install --upgrade pip
-
-      - name: Get pip cache dir
-        id: pip-cache
-        run: echo "::set-output name=dir::$(pip cache dir)"
-
-      - name: Cache dependencies
-        uses: actions/cache@v2
+          export NODE_OPTIONS=--openssl-legacy-provider
+ 
+      - name: install dependency
+        run: npm install
+      - name: Run Build
+        run: |
+          npm run build
+      - name: Deploy to GitHub Pages
+        if: |
+          !contains(github.ref, 'rc') &&
+          !contains(github.ref, 'RC') &&
+          !contains(github.ref, 'alpha') &&
+          !contains(github.ref, 'M') &&
+          !contains(github.ref, 'beta')
+        uses: JamesIves/github-pages-deploy-action@4.1.0
         with:
-          path: ${{ steps.pip-cache.outputs.dir }}
-          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
-          restore-keys: |
-            ${{ runner.os }}-pip-
-
-      - name: Install dependencies
-        run: python3 -m pip install -r ./requirements.txt
-
-      - run: mkdocs build
-      - run: echo "${{ github.ref }}"
-      - name: Deploy
-        uses: peaceiris/actions-gh-pages@v3
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./site
+          branch: gh-pages
+          folder: build # Replace "dist" with the output directory of your build
   release:
     needs: deploy
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
-
       - name: Create Release
         id: create_release
         uses: actions/create-release@v1
@@ -63,4 +57,4 @@ jobs:
           tag_name: ${{ github.ref }}
           release_name: Release ${{ github.ref }}
           draft: false
-          prerelease: false 
+          prerelease: false

@@ -1,0 +1,12 @@
+[Unit]
+Description=Beslighthouse
+After=network.target
+ 
+[Service]
+WorkingDirectory=/opt/BeSLighthouse
+ExecStart=/usr/bin/npm start
+Restart=always
+RestartSec=10
+ 
+[Install]
+WantedBy=multi-user.target
